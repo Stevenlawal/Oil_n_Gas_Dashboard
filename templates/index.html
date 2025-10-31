@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oil & Gas Sensor Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1950&q=80');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      height: 100vh;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 1.5rem;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.3);
+      transition: all 0.3s ease-in-out;
+    }
+
+    .glass:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 36px 0 rgba(31, 38, 135, 0.35);
+    }
+
+    .glow-btn {
+      background: linear-gradient(to right, #0066ff, #00ccff);
+      color: white;
+      font-weight: 600;
+      border-radius: 9999px;
+      padding: 0.75rem 2rem;
+      box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+      transition: all 0.3s ease-in-out;
+    }
+
+    .glow-btn:hover {
+      box-shadow: 0 0 20px rgba(0, 153, 255, 0.9);
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+
+<body class="flex items-center justify-center text-white font-inter">
+
+  <div class="glass w-80 sm:w-96 p-8 flex flex-col items-center text-center">
+    <img src="{{ url_for('static', filename='images/image.png') }}" alt="User avatar"
+         class="w-20 h-20 rounded-full border border-white/30 mb-4" />
+
+    <h1 class="text-xl font-semibold mb-1">Oil & Gas Sensor Dashboard</h1>
+    <p class="text-sm text-white/80 mb-6">Simulate real-time pipeline data & AI insights</p>
+
+    <div class="flex justify-between gap-4 mb-8">
+      <div class="flex flex-col items-center bg-white/10 px-4 py-2 rounded-lg">
+        <p class="text-lg font-semibold">3</p>
+        <p class="text-xs text-white/70">Active</p>
+      </div>
+      <div class="flex flex-col items-center bg-white/10 px-4 py-2 rounded-lg">
+        <p class="text-lg font-semibold">0</p>
+        <p class="text-xs text-white/70">Alerts</p>
+      </div>
+      <div class="flex flex-col items-center bg-white/10 px-4 py-2 rounded-lg">
+        <p class="text-lg font-semibold">OFF</p>
+        <p class="text-xs text-white/70">AI</p>
+      </div>
+    </div>
+
+    <a href="/dashboard" class="glow-btn mb-6">Start Simulation</a>
+
+    <div class="flex gap-6 text-white/60 text-sm">
+      <a href="https://www.linkedin.com/in/stephen-lawal-052182326" target="_blank" class="hover:text-white transition">LinkedIn</a>
+      <a href="https://github.com/Stevenlawal/Oil_n_Gas_Dashboard.git" target="_blank" class="hover:text-white transition">GitHub</a>
+    </div>
+  </div>
+</body>
+</html>

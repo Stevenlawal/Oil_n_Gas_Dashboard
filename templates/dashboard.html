@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oil & Gas Real-Time Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1950&q=80')
+                  center/cover no-repeat fixed;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 1 !important;
+      transition: opacity 0.3s ease;
+    }
+
+    .container-fluid {
+      position: relative;
+      z-index: 2;
+      padding: 2rem 3rem;
+    }
+
+    h2 {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .dashboard-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 6px 25px rgba(0,0,0,0.08);
+      padding: 1.5rem;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .dashboard-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 35px rgba(0,0,0,0.1);
+    }
+
+    .chart-title {
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: #1e293b;
+      margin-bottom: .5rem;
+    }
+
+    canvas {
+      max-height: 250px;
+    }
+
+    .alert-card {
+      background: #fef2f2;
+      border: 1px solid #fee2e2;
+      border-radius: 12px;
+      padding: 1rem;
+      color: #991b1b;
+    }
+
+    .alert-scroll {
+      max-height: 200px;     
+      overflow-y: scroll;         
+      scrollbar-width: thin;
+      scrollbar-color: #dc2626 #fee2e2;
+    }
+
+    .alert-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+    .alert-scroll::-webkit-scrollbar-thumb {
+      background: #dc2626;
+      border-radius: 8px;
+    }
+    .alert-scroll::-webkit-scrollbar-track {
+      background: #fee2e2;
+    }
+
+    .btn-analysis {
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
+      border: none;
+      border-radius: 40px;
+      padding: .7rem 1.6rem;
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 6px 20px rgba(37,99,235,.3);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .btn-analysis:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(37,99,235,.4);
+    }
+
+    /* --- SIDE PANEL STYLES --- */
+    .analysis-panel {
+      position: fixed;
+      top: 0;
+      right: -450px;
+      width: 450px;
+      height: 100%;
+      background: #ffffff;
+      box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+      border-left: 1px solid #e5e7eb;
+      z-index: 2000;
+      padding: 1.5rem;
+      transition: right 0.35s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .analysis-panel.active {
+      right: 0;
+    }
+
+    .analysis-header {
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: .5rem;
+    }
+
+    .analysis-body {
+      flex: 1;
+      overflow-y: auto;
+      padding-top: 1rem;
+    }
+
+    body.modal-open .overlay {
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<script>
+window.addEventListener("beforeunload", function() {
+  navigator.sendBeacon("/stop");
+});
+</script>
+
+<div class="overlay"></div>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Oil & Gas Real-Time Dashboard</h2>
+    <button class="btn-analysis">Get Analysis</button>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-4 col-md-6">
+      <div class="dashboard-card">
+        <div class="chart-title">Temperature (°C)</div>
+        <canvas id="tempChart"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-6">
+      <div class="dashboard-card">
+        <div class="chart-title">Pressure (bar)</div>
+        <canvas id="pressChart"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-12">
+      <div class="dashboard-card">
+        <div class="chart-title">Flow Rate (L/min)</div>
+        <canvas id="flowChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8 mt-4">
+    <div class="dashboard-card">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="chart-title text-danger mb-0">
+          High-Pressure Alerts
+          <span id="alertCount" class="badge bg-danger ms-2">0</span>
+        </div>
+      </div>
+      <div id="alertsList" class="small mt-2 alert-scroll" style="min-height: 200px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- AI ANALYSIS SIDE PANEL -->
+<div id="analysisPanel" class="analysis-panel">
+  <div class="analysis-header d-flex justify-content-between align-items-center">
+    <h5 class="fw-bold mb-0">AI-Powered Summary</h5>
+    <button class="btn-close" id="closePanel"></button>
+  </div>
+  <div class="analysis-body" id="analysisBody">
+    <p class="text-center text-secondary"><span class="spinner-border spinner-border-sm"></span> Waiting for analysis…</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* CHART CONFIGURATION */
+const chartCfg = (label, color1, color2) => ({
+  type: 'line',
+  data: { labels: [], datasets: [{
+      label,
+      data: [],
+      borderColor: color1,
+      backgroundColor: ctx => {
+        const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 180);
+        gradient.addColorStop(0, color2);
+        gradient.addColorStop(1, 'rgba(255,255,255,0)');
+        return gradient;
+      },
+      tension: 0.35,
+      fill: true,
+      borderWidth: 2,
+      pointRadius: 3,
+      pointBackgroundColor: '#fff'
+  }]},
+  options: {
+    animation: { duration: 600, easing: 'easeInOutQuad' },
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        type: 'linear',
+        ticks: { color: '#6b7280', autoSkip: true, maxTicksLimit: 10 },
+        grid: { color: 'rgba(0,0,0,0.05)' },
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { color: '#6b7280' },
+        grid: { color: 'rgba(0,0,0,0.05)' }
+      }
+    }
+  }
+});
+
+const charts = [
+  new Chart(document.getElementById('tempChart'), chartCfg('Temperature', '#3b82f6', 'rgba(59,130,246,0.3)')),
+  new Chart(document.getElementById('pressChart'), chartCfg('Pressure', '#f97316', 'rgba(249,115,22,0.3)')),
+  new Chart(document.getElementById('flowChart'), chartCfg('Flow Rate', '#22c55e', 'rgba(34,197,94,0.3)'))
+];
+
+let lastTimestamp = null;
+let allAlerts = [];
+let alertCount = 0;
+
+async function fetchAndUpdate() {
+  try {
+    const res = await fetch('/data');
+    const data = await res.json();
+
+    const timestamps = data.timestamps;
+    const temp = data.temperature;
+    const press = data.pressure;
+    const flow = data.flow;
+
+    if (!lastTimestamp) {
+      charts[0].data.labels = timestamps.map((_, i) => i);
+      charts[0].data.datasets[0].data = temp;
+      charts[1].data.labels = timestamps;
+      charts[1].data.datasets[0].data = press;
+      charts[2].data.labels = timestamps;
+      charts[2].data.datasets[0].data = flow;
+      lastTimestamp = timestamps[timestamps.length - 1];
+      charts.forEach(c => c.update());
+      return;
+    }
+
+    const lastIndex = timestamps.indexOf(lastTimestamp);
+    const newIndices = timestamps.slice(lastIndex + 1);
+
+    if (newIndices.length > 0) {
+      newIndices.forEach((ts) => {
+  const idx = timestamps.indexOf(ts);
+  const newLabel = (charts[0].data.labels.at(-1) ?? 0) + 1; // increment from last label
+
+  charts.forEach((chart, chartIdx) => {
+    chart.data.labels.push(newLabel);
+    chart.data.datasets[0].data.push(
+      [temp, press, flow][chartIdx][idx]
+    );
+
+    // Keep rolling window of 15 points
+    if (chart.data.labels.length > 15) {
+      chart.data.labels.shift();
+      chart.data.datasets[0].data.shift();
+    }
+  });
+
+  // Update *once* per batch, not per point
+  charts.forEach(chart => chart.update('active'));
+});
+
+      lastTimestamp = timestamps[timestamps.length - 1];
+    }
+
+    const alerts = document.getElementById('alertsList');
+    const alertBadge = document.getElementById('alertCount');
+
+    if (press[press.length - 1] > 970) {
+      const timestamp = timestamps[timestamps.length - 1];
+      const pressureValue = press[press.length - 1].toFixed(2);
+      const newAlert = `<strong>${timestamp}</strong> — High Pressure: ${pressureValue} hPa`;
+      allAlerts.unshift(newAlert);
+      alertCount++;
+      alertBadge.textContent = alertCount;
+      alerts.innerHTML = allAlerts.map(a => `<div class="alert-card mb-2">${a}</div>`).join('');
+    }
+  } catch (err) {
+    console.error("Fetch/update error:", err);
+  }
+}
+
+setInterval(fetchAndUpdate, 3000);
+fetchAndUpdate();
+
+/* --- AI ANALYSIS SIDE PANEL LOGIC --- */
+const openBtn = document.querySelector('.btn-analysis');
+const panel = document.getElementById('analysisPanel');
+const closeBtn = document.getElementById('closePanel');
+const body = document.getElementById('analysisBody');
+
+openBtn.addEventListener('click', async () => {
+  panel.classList.add('active');
+  body.innerHTML = `<p class="text-center text-secondary">
+    <span class="spinner-border spinner-border-sm"></span> Generating AI analysis…
+  </p>`;
+
+  try {
+    const res = await fetch('/analyze');
+    const data = await res.json();
+    body.innerHTML = `<h6>AI Performance Summary</h6><p>${data.analysis}</p>`;
+  } catch (err) {
+    body.innerHTML = `<p class="text-danger">⚠️ Failed to fetch analysis.</p>`;
+  }
+});
+
+closeBtn.addEventListener('click', () => {
+  panel.classList.remove('active');
+});
+
+</script>
+</body>
+</html>
