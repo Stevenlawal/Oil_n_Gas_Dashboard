@@ -53,30 +53,28 @@ oil-gas-dashboard/
    cd oil-gas-dashboard
 
 2. **Create a Virtual Environment**
-
-python -m venv venv
-source venv/Scripts/activate   # Windows
-# or
-source venv/bin/activate       # macOS/Linux
+   ```bash
+   python -m venv venv
+   source venv/Scripts/activate   # Windows
+   # or
+   source venv/bin/activate       # macOS/Linux
 
 3. **Install Dependencies**
-
-pip install -r requirements.txt
-
+   ```bash
+   pip install -r requirements.txt
 
 4. **Set up Environment Variable**
+   ```bash
+   Create a .env file in the root folder:
 
-Create a .env file in the root folder:
-
-OPENAI_API_KEY=your_openai_key_here
-
+   OPENAI_API_KEY=your_openai_key_here
 
 5. **Run it**
 
-flask run
+   ```bash
+   flask run
 
-Then open: http://127.0.0.1:5000/
-
+   Then open: http://127.0.0.1:5000/
 
 **💡 Future Improvements**
 
